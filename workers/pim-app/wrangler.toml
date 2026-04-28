@@ -15,4 +15,4 @@ invocation_logs = true
 
 [vars]
 APP_URL = "https://pim-app-worker.patrickwjmans.workers.dev"
-SHOPIFY_API_KEY = "your_api_key_here"
+SHOPIFY_API_KEY = "your_api_key"
