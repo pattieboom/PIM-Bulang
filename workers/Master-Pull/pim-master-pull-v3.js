@@ -86,29 +86,28 @@ await env.SYNC_QUEUE.send({
 
 // === PRODUCT DELETE WEBHOOK ===
 
-      if (topic === "products/delete") {
-      const now = new Date().toISOString();
+if (topic === "products/delete") {
+  const now = new Date().toISOString();
+  // pim_pid ophalen (BESTAAT hier nog niet)
+  const productRow = await env.DB.prepare(`
+    SELECT pim_pid
+    FROM products
+    WHERE shopify_product_id = ?1
+    LIMIT 1
+  `).bind(String(shopifyProductId)).first();
     
-      // pim_pid ophalen (BESTAAT hier nog niet)
-      const productRow = await env.DB.prepare(`
-        SELECT pim_pid
-        FROM products
-        WHERE shopify_product_id = ?1
-        LIMIT 1
-      `).bind(String(shopifyProductId)).first();
+   const pim_pid = productRow?.pim_pid;
     
-      const pim_pid = productRow?.pim_pid;
+  // product soft delete
+   await env.DB.prepare(`
+    UPDATE products
+    SET deleted_at = ?1
+    WHERE shopify_product_id = ?2
+    `)
+    .bind(now, String(shopifyProductId))
+    .run();
     
-      // product soft delete
-      await env.DB.prepare(`
-        UPDATE products
-        SET deleted_at = ?1
-        WHERE shopify_product_id = ?2
-      `)
-        .bind(now, String(shopifyProductId))
-        .run();
-    
-      // variants soft delete
+  // variants soft delete
       if (pim_pid) {
         await env.DB.prepare(`
           UPDATE variants
