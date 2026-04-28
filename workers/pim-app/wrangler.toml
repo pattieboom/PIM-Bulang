@@ -1,5 +1,5 @@
 name = "pim-app-worker"
-main = "src/index.js"
+main = "pim-app-worker.js"
 compatibility_date = "2026-01-08"
 
 # D1 binding
