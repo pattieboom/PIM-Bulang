@@ -780,12 +780,8 @@ if (!skipDelta && Object.keys(changed).length) {
     .run();
 }
 
-
-
-
 }
 // --- end DELTA for variants ---
-
 
 await env.DB.prepare(`
   UPDATE variants
