@@ -1,0 +1,18 @@
+name = "pim-app-worker"
+main = "src/index.js"
+compatibility_date = "2026-01-08"
+
+# D1 binding
+[[d1_databases]]
+binding = "DB"
+database_name = "pim3"
+database_id = "ae86a3c9-7835-4c2e-9bde-96a53ef481b4"
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[vars]
+APP_URL = "https://pim-app-worker.patrickwjmans.workers.dev"
+SHOPIFY_API_KEY = "your_api_key_here"
