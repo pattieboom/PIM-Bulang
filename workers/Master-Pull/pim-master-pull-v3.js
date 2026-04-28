@@ -1,3 +1,5 @@
+// Pull from Master Worker
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method !== "POST") {
