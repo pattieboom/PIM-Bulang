@@ -39,6 +39,7 @@ export default {
     
 
 // === INVENTORY ITEM UPDATE WEBHOOK ===
+
 if (topic === "inventory_items/update") {
   const inventoryItemId = payload?.id;
   if (!inventoryItemId) {
@@ -82,6 +83,8 @@ await env.SYNC_QUEUE.send({
 
   return new Response("OK", { status: 200 });
 }
+
+// === PRODUCT DELETE WEBHOOK ===
 
       if (topic === "products/delete") {
       const now = new Date().toISOString();
