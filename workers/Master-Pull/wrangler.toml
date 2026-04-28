@@ -9,8 +9,6 @@ binding = "DB"
 database_name = "pim3"
 database_id = "ae86a3c9-7835-4c2e-9bde-96a53ef481b4"
 
-[[r2_buckets]]
-
 [[queues.producers]]
 binding = "PULL_QUEUE"
 queue = "pim-master-pull-queue-v3"
