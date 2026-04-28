@@ -1,17 +1,16 @@
-# workers/dev-mwc-watches/wrangler.toml 
-name = 'dev-mwc-watches'
-main = "dev-mwc-watches.js"
-compatibility_date = "2024-01-01"
+# workers/Master-Pull/wrangler.toml 
+name = 'master-pull'
+main = "pim-master-pull-v3.js"
+compatibility_date = "2026-01-08"
 
 # D1 binding (AUTH DB)
 [[d1_databases]]
-binding = "DB_MWC"
-database_name = "mwc-auth-db"
-database_id = "c20c1aab-f98a-4043-a64a-ce20e59b7055"
+binding = "DB"
+database_name = "pim3"
+database_id = "ae86a3c9-7835-4c2e-9bde-96a53ef481b4"
 
 [[r2_buckets]]
-binding = "MWC_WATCH_PHOTOS"
-bucket_name = "mwc-watch-photos"
+
 
 [observability]
 [observability.logs]
@@ -19,6 +18,3 @@ enabled = true
 invocation_logs = true
 
 [vars]
-ALLOWED_ORIGINS = "https://bulangandsons.nl,https://www.bulangandsons.nl,https://bulangandsons.de,https://bulangandsons.eu,https://bulangandsons.com,https://bulangandsons.net,https://bulangandsons.co.uk,https://bulangandsons.org,https://www.bulangandsons.org,https://watchopedia.watch,https://www.watchopedia.watch,https://dev.bulangandsons.org,https://dev-edge.bulangandsons.org"
-MWC_WATCH_PHOTOS_PUBLIC_BASE_URL = "https://pub-751b3f82438d40b3b63fbdd31ce224a7.r2.dev"
-INTERNAL_API_SECRET = "goldenbrown"
