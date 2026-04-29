@@ -174,7 +174,34 @@ await env.DB.prepare(`
 .run();
 
   // =========================
-  // 5. REDIRECT NAAR APP
+  // 5. AANMAKEN WEBHOOKS
+  // =========================
+
+const webhookTopics = [
+  "products/create",
+  "products/update",
+  "products/delete",
+];
+
+for (const topic of webhookTopics) {
+  await fetch(`https://${shop}/admin/api/2024-01/webhooks.json`, {
+    method: "POST",
+    headers: {
+      "X-Shopify-Access-Token": accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      webhook: {
+        topic,
+        address: `${env.APP_URL}/webhooks/${topic}`,
+        format: "json",
+      },
+    }),
+  });
+}
+
+  // =========================
+  // 6. REDIRECT NAAR APP
   // =========================
 return Response.redirect(
   `https://${shop}/admin/apps/${env.SHOPIFY_API_KEY}`,
