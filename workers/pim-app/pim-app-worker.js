@@ -178,11 +178,23 @@ if (url.pathname === "/api/products") {
     return new Response("Missing shop", { status: 400 });
   }
 
+  // check of shop bestaat
+  const shopRow = await env.DB.prepare(`
+    SELECT 1 FROM shops WHERE shop_domain = ?1 LIMIT 1
+  `).bind(shop).first();
+
+  if (!shopRow) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const products = await env.DB.prepare(`
     SELECT *
     FROM products
+    WHERE shop_domain = ?1
     LIMIT 50
-  `).all();
+  `)
+    .bind(shop)
+    .all();
 
   return new Response(JSON.stringify(products.results), {
     headers: { "Content-Type": "application/json" },
