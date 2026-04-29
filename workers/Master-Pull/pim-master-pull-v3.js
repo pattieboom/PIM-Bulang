@@ -145,7 +145,7 @@ if (topic === "products/delete") {
           INSERT OR IGNORE INTO delta_variants (
             pim_pid,
             shopify_variant_id,
-            "shop_domain",
+            shop_domain,
             webhook_event_id,
             updated_at,
             deleted_at
