@@ -136,29 +136,42 @@ export default {
   // =========================
   // 4. OPSLAAN IN SHOPS
   // =========================
-  await env.DB.prepare(`
-    INSERT OR REPLACE INTO shops (
-      shop_domain,
-      access_token,
-      installed_at,
-      is_active
-    ) VALUES (?1, ?2, ?3, 1)
-  `)
-    .bind(
-      shop,
-      accessToken,
-      new Date().toISOString()
-    )
-    .run();
+  // check bestaande shop
+const existing = await env.DB.prepare(`
+  SELECT company_id FROM shops WHERE shop_domain = ?1
+`)
+.bind(shop)
+.first();
 
-  // mark state als gebruikt
-  await env.DB.prepare(`
-    UPDATE oauth_states
-    SET used_at = ?1
-    WHERE state = ?2
-  `)
-    .bind(new Date().toISOString(), state)
-    .run();
+let companyId;
+
+if (existing && existing.company_id) {
+  companyId = existing.company_id;
+} else {
+  companyId = crypto.randomUUID();
+}
+
+// insert/update zonder company_id te slopen
+await env.DB.prepare(`
+  INSERT INTO shops (
+    shop_domain,
+    access_token,
+    company_id,
+    installed_at,
+    is_active
+  )
+  VALUES (?1, ?2, ?3, ?4, 1)
+  ON CONFLICT (shop_domain) DO UPDATE SET
+    access_token = excluded.access_token,
+    is_active = 1
+`)
+.bind(
+  shop,
+  accessToken,
+  companyId,
+  new Date().toISOString()
+)
+.run();
 
   // =========================
   // 5. REDIRECT NAAR APP
