@@ -280,9 +280,13 @@ if (url.pathname === "/") {
   }
 
   // 👉 WEL geïnstalleerd → app laden
-  return new Response("App loaded", {
-    headers: { "Content-Type": "text/plain" },
-  });
+return new Response("App loaded", {
+  status: 200,
+  headers: {
+    "Content-Type": "text/html",
+    "Content-Security-Policy": "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+  },
+});
 }
 
     return new Response("Not found", { status: 404 });
