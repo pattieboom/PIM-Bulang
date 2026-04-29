@@ -889,6 +889,7 @@ WHERE pim_pid = ?5
       topic: "sync",
       webhook_event_id: webhookEventId,
       pim_pid,
+      shop_domain: shopDomain,
       shopify_product_id: String(shopifyProductId),
       received_at: now,
     });
