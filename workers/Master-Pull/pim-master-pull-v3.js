@@ -34,6 +34,7 @@ export default {
     const now = new Date().toISOString();
     const notDeleted = "";
 
+    const shopDomain = request.headers.get("X-Shopify-Shop-Domain");
     const topic = request.headers.get("X-Shopify-Topic");
     const webhookEventId = request.headers.get("x-shopify-webhook-id") || "";
     
@@ -172,21 +173,26 @@ if (topic === "products/delete") {
     // 1) Product garanderen (products heeft wél updated_at)
     await env.DB.prepare(`
       INSERT OR IGNORE INTO products (
-        shopify_product_id,
-        created_at,
-        updated_at,
-        deleted_at
-      ) VALUES (?1, ?2, ?3, ?4)
+  shopify_product_id,
+  shop_domain,
+  created_at,
+  updated_at,
+  deleted_at
+)
+VALUES (?1, ?2, ?3, ?4, ?5)
     `)
-      .bind(String(shopifyProductId), now, now, notDeleted)
+      .bind(String(shopifyProductId), shopDomain, now, now, notDeleted)
       .run();
 
     await env.DB.prepare(`
-      UPDATE products
-      SET updated_at = ?1, deleted_at = ?2
-      WHERE shopify_product_id = ?3
+UPDATE products
+SET 
+  shop_domain = ?1,
+  updated_at = ?2,
+  deleted_at = ?3
+WHERE shopify_product_id = ?4
     `)
-      .bind(now, notDeleted, String(shopifyProductId))
+      .bind(shopDomain, now, notDeleted, String(shopifyProductId))
       .run();
 
     const productRow = await env.DB.prepare(`
