@@ -163,10 +163,10 @@ export default {
   // =========================
   // 5. REDIRECT NAAR APP
   // =========================
-  return Response.redirect(
-    `https://${shop}/admin/apps`,
-    302
-  );
+return Response.redirect(
+  `https://${shop}/admin/apps/${env.SHOPIFY_API_KEY}`,
+  302
+);
 }
 
     return new Response("Not found", { status: 404 });
