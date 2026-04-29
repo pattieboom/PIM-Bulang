@@ -404,6 +404,7 @@ if (webhookEventId) {
     const cols = [
       "pim_pid",
       "shopify_product_id",
+      "shop_domain",
       "webhook_event_id",
       "updated_at",
       ...Object.keys(changed),
@@ -417,6 +418,7 @@ if (webhookEventId) {
       .bind(
         pim_pid,
         String(shopifyProductId),
+        shopDomain,
         webhookEventId,
         now,
         ...Object.values(changed)
@@ -676,80 +678,6 @@ if (!current) {
 }
 
 
-
-//einde za 17 jan C
-
-  // if variant didn't exist yet -> store full snapshot, else only changed fields
-  // const changed = {};
-  // if (!current) {
-  //   Object.assign(changed, incoming);
-  // } else {
-  //   for (const k of Object.keys(incoming)) {
-  //     if (incoming[k] !== current[k]) changed[k] = incoming[k];
-  //   }
-  // }
-// 17jan B:
-  // delta_variants géén inventory-only events, maar de gewone variants tabel blijft wel alles updaten.
-  // en bij mixed updates inventory_quantity uit de delta halen (maar variants blijft wél updaten):
-// Ignore inventory_quantity in delta:
-// - if it's the only change -> no delta row
-// - if there are other changes -> drop inventory_quantity from delta payload
-// let skipDelta = false;
-
-// if (current && Object.prototype.hasOwnProperty.call(changed, "inventory_quantity")) {
-//   if (Object.keys(changed).length === 1) {
-//     // inventory-only event -> geen delta, maar variants update moet wél doorgaan
-//     skipDelta = true;
-//   } else {
-//     // mixed change -> inventory_quantity niet in delta
-//     delete changed.inventory_quantity;
-//   }
-// }
-
-// if (!skipDelta && Object.keys(changed).length) {
-//   // jouw bestaande INSERT OR IGNORE INTO delta_variants ...
-// }
-// einde 17jan B
-
-//   if (Object.keys(changed).length) {
-//     const cols = ["pim_pid", "shopify_variant_id", "webhook_event_id", "updated_at", ...Object.keys(changed)];
-//     const placeholders = cols.map((_, i) => `?${i + 1}`).join(", ");
-//     const sql = `INSERT OR IGNORE INTO delta_variants (${cols.join(", ")}) VALUES (${placeholders})`;
-
-//     await env.DB.prepare(sql)
-//       .bind(
-//         pim_pid,
-//         String(vid),
-//         webhookEventId,
-//         variantUpdatedAt ?? now,
-//         ...Object.values(changed)
-//       )
-//       .run();
-
-// //16janB
-
-
-// //einde 16janB
-// // fill pim_vid on delta row (if column exists)
-// await env.DB.prepare(`
-//   UPDATE delta_variants
-//   SET pim_vid = (
-//     SELECT pim_vid
-//     FROM variants
-//     WHERE pim_pid = ?1 AND shopify_variant_id = ?2
-//     LIMIT 1
-//   )
-//   WHERE pim_vid IS NULL
-//     AND pim_pid = ?1
-//     AND shopify_variant_id = ?2
-//     AND webhook_event_id = ?3
-// `)
-//   .bind(pim_pid, String(vid), webhookEventId)
-//   .run();
-
-
-//   }
-
 let skipDelta = false;
 
 if (current && Object.prototype.hasOwnProperty.call(changed, "inventory_quantity")) {
@@ -761,7 +689,7 @@ if (current && Object.prototype.hasOwnProperty.call(changed, "inventory_quantity
 }
 
 if (!skipDelta && Object.keys(changed).length) {
-  const cols = ["pim_pid", "shopify_variant_id", "webhook_event_id", "updated_at", ...Object.keys(changed)];
+  const cols = ["pim_pid", "shopify_variant_id", "shop_domain", "webhook_event_id", "updated_at", ...Object.keys(changed)];
   const placeholders = cols.map((_, i) => `?${i + 1}`).join(", ");
   const sql = `INSERT OR IGNORE INTO delta_variants (${cols.join(", ")}) VALUES (${placeholders})`;
 
@@ -769,6 +697,7 @@ if (!skipDelta && Object.keys(changed).length) {
     .bind(
       pim_pid,
       String(vid),
+      shopDomain,
       webhookEventId,
       variantUpdatedAt ?? now,
       ...Object.values(changed)
@@ -873,13 +802,24 @@ if (activeVariantIdsArr.length === 0) {
   if (webhookEventId) {
     await env.DB.prepare(`
       INSERT OR IGNORE INTO delta_variants (
-        pim_pid, shopify_variant_id, webhook_event_id, updated_at, deleted_at
-      )
-      SELECT pim_pid, shopify_variant_id, ?1, ?2, ?3
-      FROM variants
-      WHERE pim_pid = ?4
-        AND deleted_at = ?3
-    `).bind(webhookEventId, now, now, pim_pid).run();
+  pim_pid,
+  shopify_variant_id,
+  shop_domain,
+  webhook_event_id,
+  updated_at,
+  deleted_at
+)
+SELECT
+  pim_pid,
+  shopify_variant_id,
+  ?1, -- shop_domain
+  ?2, -- webhook_event_id
+  ?3, -- updated_at
+  ?4  -- deleted_at
+FROM variants
+WHERE pim_pid = ?5
+        AND deleted_at = ?4
+    `).bind(shopDomain, webhookEventId, now, now, pim_pid).run();
   }
 } else {
   // alleen varianten die niet meer in payload zitten
@@ -895,15 +835,35 @@ if (activeVariantIdsArr.length === 0) {
 
   if (webhookEventId) {
     await env.DB.prepare(`
-      INSERT OR IGNORE INTO delta_variants (
-        pim_pid, shopify_variant_id, webhook_event_id, updated_at, deleted_at
-      )
-      SELECT pim_pid, shopify_variant_id, ?1, ?2, ?3
-      FROM variants
-      WHERE pim_pid = ?4
-        AND shopify_variant_id NOT IN (${placeholders})
-        AND deleted_at = ?3
-    `).bind(webhookEventId, now, now, pim_pid, ...activeVariantIdsArr).run();
+  INSERT OR IGNORE INTO delta_variants (
+    pim_pid,
+    shopify_variant_id,
+    shop_domain,
+    webhook_event_id,
+    updated_at,
+    deleted_at
+  )
+  SELECT
+    pim_pid,
+    shopify_variant_id,
+    ?1, -- shop_domain
+    ?2, -- webhook_event_id
+    ?3, -- updated_at
+    ?4  -- deleted_at
+  FROM variants
+  WHERE pim_pid = ?5
+    AND shopify_variant_id NOT IN (${placeholders})
+    AND deleted_at = ?4
+`)
+.bind(
+  shopDomain,
+  webhookEventId,
+  now,
+  now,
+  pim_pid,
+  ...activeVariantIdsArr
+)
+.run();
   }
 }
 
