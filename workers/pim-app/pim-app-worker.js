@@ -42,6 +42,133 @@ export default {
       return Response.redirect(redirectUrl, 302);
     }
 
+    if (url.pathname === "/auth/callback") {
+  const params = Object.fromEntries(url.searchParams.entries());
+
+  const { hmac, code, shop, state } = params;
+
+  if (!hmac || !code || !shop || !state) {
+    return new Response("Missing params", { status: 400 });
+  }
+
+  // =========================
+  // 1. HMAC VALIDATIE
+  // =========================
+  const message = Object.keys(params)
+    .filter((key) => key !== "hmac")
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+
+  const encoder = new TextEncoder();
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(env.SHOPIFY_API_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(message)
+  );
+
+  const digest = Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (digest !== hmac) {
+    return new Response("Invalid HMAC", { status: 403 });
+  }
+
+  // =========================
+  // 2. STATE VALIDATIE
+  // =========================
+  const stateRow = await env.DB.prepare(`
+    SELECT * FROM oauth_states
+    WHERE state = ?1
+    LIMIT 1
+  `)
+    .bind(state)
+    .first();
+
+  if (!stateRow) {
+    return new Response("Invalid state", { status: 403 });
+  }
+
+  if (stateRow.used_at) {
+    return new Response("State already used", { status: 403 });
+  }
+
+  if (new Date(stateRow.expires_at) < new Date()) {
+    return new Response("State expired", { status: 403 });
+  }
+
+  // =========================
+  // 3. TOKEN OPHALEN
+  // =========================
+  const tokenRes = await fetch(
+    `https://${shop}/admin/oauth/access_token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: env.SHOPIFY_API_KEY,
+        client_secret: env.SHOPIFY_API_SECRET,
+        code,
+      }),
+    }
+  );
+
+  const tokenData = await tokenRes.json();
+
+  const accessToken = tokenData.access_token;
+
+  if (!accessToken) {
+    return new Response("Token exchange failed", { status: 500 });
+  }
+
+  // =========================
+  // 4. OPSLAAN IN SHOPS
+  // =========================
+  await env.DB.prepare(`
+    INSERT OR REPLACE INTO shops (
+      shop_domain,
+      access_token,
+      installed_at,
+      is_active
+    ) VALUES (?1, ?2, ?3, 1)
+  `)
+    .bind(
+      shop,
+      accessToken,
+      new Date().toISOString()
+    )
+    .run();
+
+  // mark state als gebruikt
+  await env.DB.prepare(`
+    UPDATE oauth_states
+    SET used_at = ?1
+    WHERE state = ?2
+  `)
+    .bind(new Date().toISOString(), state)
+    .run();
+
+  // =========================
+  // 5. REDIRECT NAAR APP
+  // =========================
+  return Response.redirect(
+    `https://${shop}/admin/apps`,
+    302
+  );
+}
+
     return new Response("Not found", { status: 404 });
   },
 };
