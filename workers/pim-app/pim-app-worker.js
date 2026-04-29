@@ -257,6 +257,34 @@ if (url.pathname === "/webhooks/shop/redact") {
   return new Response("OK", { status: 200 });
 }
 
+if (url.pathname === "/") {
+  const shop = url.searchParams.get("shop");
+
+  if (!shop) {
+    return new Response("Missing shop", { status: 400 });
+  }
+
+  // check of shop al bestaat
+  const existing = await env.DB.prepare(`
+    SELECT 1 FROM shops WHERE shop_domain = ?1
+  `)
+    .bind(shop)
+    .first();
+
+  // 👉 NIET geïnstalleerd → start OAuth
+  if (!existing) {
+    return Response.redirect(
+      `${env.APP_URL}/auth?shop=${shop}`,
+      302
+    );
+  }
+
+  // 👉 WEL geïnstalleerd → app laden
+  return new Response("App loaded", {
+    headers: { "Content-Type": "text/plain" },
+  });
+}
+
     return new Response("Not found", { status: 404 });
   },
 };
