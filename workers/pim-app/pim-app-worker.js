@@ -243,6 +243,20 @@ if (url.pathname === "/api/products") {
 
 //einde endpoint /api/products
 
+// GDPR webhooks
+
+if (url.pathname === "/webhooks/customers/data_request") {
+  return new Response("OK", { status: 200 });
+}
+
+if (url.pathname === "/webhooks/customers/redact") {
+  return new Response("OK", { status: 200 });
+}
+
+if (url.pathname === "/webhooks/shop/redact") {
+  return new Response("OK", { status: 200 });
+}
+
     return new Response("Not found", { status: 404 });
   },
 };
