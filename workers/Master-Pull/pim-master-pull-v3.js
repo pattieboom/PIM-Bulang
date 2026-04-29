@@ -125,14 +125,16 @@ if (topic === "products/delete") {
           INSERT OR IGNORE INTO delta_products (
             pim_pid,
             shopify_product_id,
+            "shop_domain",
             webhook_event_id,
             updated_at,
             deleted_at
-          ) VALUES (?1, ?2, ?3, ?4, ?5)
+          ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         `)
           .bind(
             pim_pid,
             String(shopifyProductId),
+            shopDomain,
             webhookEventId,
             now,
             now
@@ -143,20 +145,22 @@ if (topic === "products/delete") {
           INSERT OR IGNORE INTO delta_variants (
             pim_pid,
             shopify_variant_id,
+            "shop_domain",
             webhook_event_id,
             updated_at,
             deleted_at
           )
           SELECT
-            pim_pid,
-            shopify_variant_id,
-            ?1,
-            ?2,
-            ?3
+    pim_pid,
+    shopify_variant_id,
+    ?1, -- shop_domain
+    ?2, -- webhook_event_id
+    ?3, -- updated_at
+    ?4  -- deleted_at
           FROM variants
-          WHERE pim_pid = ?4
+          WHERE pim_pid = ?5
         `)
-          .bind(webhookEventId, now, now, pim_pid)
+          .bind(shopDomain, webhookEventId, now, now, pim_pid)
           .run();
       }
     
