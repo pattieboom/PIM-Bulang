@@ -42,10 +42,10 @@ export default {
       return Response.redirect(redirectUrl, 302);
     }
 
+// endpoint auth/callback
     if (url.pathname === "/auth/callback") {
-  const params = Object.fromEntries(url.searchParams.entries());
-
-  const { hmac, code, shop, state } = params;
+      const params = Object.fromEntries(url.searchParams.entries());
+      const { hmac, code, shop, state } = params;
 
   if (!hmac || !code || !shop || !state) {
     return new Response("Missing params", { status: 400 });
@@ -167,7 +167,29 @@ return Response.redirect(
   `https://${shop}/admin/apps/${env.SHOPIFY_API_KEY}`,
   302
 );
+} // einde endpoint /auth/callback
+
+// endpoint /api/products
+
+if (url.pathname === "/api/products") {
+  const shop = url.searchParams.get("shop");
+
+  if (!shop) {
+    return new Response("Missing shop", { status: 400 });
+  }
+
+  const products = await env.DB.prepare(`
+    SELECT *
+    FROM products
+    LIMIT 50
+  `).all();
+
+  return new Response(JSON.stringify(products.results), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
+
+//einde endpoint /api/products
 
     return new Response("Not found", { status: 404 });
   },
